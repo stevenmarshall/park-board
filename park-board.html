@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Park board</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Park board">
+<meta name="theme-color" content="#14213D">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF2F8; --card:#FFFFFF; --ink:#14213D; --mute:#5B6478; --line:#D9DFEA;
+    --rd:#F28C28; --ll:#2F6FED; --sp:#7B4DFF; --fx:#2E9E6B; --bad:#D6455D; --ok:#2E9E6B;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Outfit,system-ui,-apple-system,sans-serif;font-size:17px;line-height:1.35}
+  .wrap{max-width:560px;margin:0 auto;padding:12px 12px calc(24px + env(safe-area-inset-bottom))}
+ 
+  /* day tabs */
+  .days{display:flex;gap:6px;margin-bottom:10px}
+  .days button{flex:1;padding:10px 6px;border:0;border-radius:12px;background:#fff;color:var(--mute);font:inherit;font-weight:600;font-size:15px;cursor:pointer;border:1.5px solid var(--line)}
+  .days button[aria-selected="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .days button small{display:block;font-weight:500;font-size:12px;opacity:.85}
+ 
+  /* the meter */
+  .meter{background:var(--card);border-radius:16px;padding:12px 14px 10px;margin-bottom:10px;border:1.5px solid var(--line)}
+  .meter h2{margin:0 0 6px;font-size:15px;font-weight:600;display:flex;justify-content:space-between;align-items:baseline}
+  .meter h2 span{font-weight:500;color:var(--mute);font-size:14px}
+  .bars{position:relative;display:flex;gap:4px;align-items:flex-end;height:64px;padding-top:6px}
+  .bars .cap{position:absolute;left:0;right:0;top:6px;border-top:2px dashed var(--bad);opacity:.55;pointer-events:none}
+  .bar{flex:1;min-width:8px;max-width:26px;border-radius:5px 5px 2px 2px;background:var(--ok);position:relative}
+  .bar.over{background:var(--bad)}
+  .bar i{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-style:normal;font-size:11px;color:var(--mute);white-space:nowrap}
+  .bars.empty::after{content:"No rides logged yet. Tap Did it on a ride below.";font-size:14px;color:var(--mute);align-self:center}
+  .meterfoot{display:flex;gap:14px;margin-top:22px;font-size:14px;color:var(--mute)}
+  .meterfoot b{color:var(--ink)}
+ 
+  /* next-LL timer */
+  .ll{background:var(--ink);color:#fff;border-radius:16px;padding:12px 14px;margin-top:10px;display:flex;align-items:center;gap:10px}
+  .ll .t{flex:1;min-width:0}
+  .ll .big{font-size:22px;font-weight:700;line-height:1.1;letter-spacing:-.01em}
+  .ll .sub{font-size:13px;opacity:.8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ll.open{background:var(--ll)}
+  .ll select{max-width:46%;font:inherit;font-size:14px;padding:8px 8px;border:0;border-radius:10px;background:rgba(255,255,255,.15);color:#fff}
+  .ll select option{color:var(--ink)}
+  .ll button{border:0;border-radius:10px;font:inherit;font-weight:600;font-size:14px;padding:10px 12px;cursor:pointer;background:#fff;color:var(--ink);white-space:nowrap}
+  .ll button.ghostb{background:transparent;color:#fff;opacity:.75;padding:10px 6px}
+ 
+  .chips{display:flex;gap:4px;flex-wrap:wrap;padding:0 8px 8px 46px}
+  .chips button{border:1.5px solid var(--line);background:#fff;border-radius:8px;font:inherit;font-size:13px;font-weight:600;padding:5px 8px;cursor:pointer;color:var(--ink)}
+  .chip{cursor:pointer}
+  .banner{background:#FFF3D6;border:1.5px solid #F0C36B;border-radius:12px;padding:10px 12px;font-size:14px;margin-bottom:10px;display:flex;gap:8px;align-items:center}
+  .banner button{border:0;border-radius:8px;background:var(--ink);color:#fff;font:inherit;font-size:13px;font-weight:600;padding:7px 10px;margin-left:auto;cursor:pointer}
+  .foot{flex-wrap:wrap;gap:10px}
+  .foot .r{display:flex;gap:10px}
+ 
+  /* park toggle */
+  .parks{display:flex;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:3px;margin-top:14px}
+  .parks button{flex:1;border:0;border-radius:9px;background:none;font:inherit;font-weight:600;font-size:14px;padding:9px 4px;color:var(--mute);cursor:pointer}
+  .parks button[aria-pressed="true"]{background:var(--ink);color:#fff}
+  .count{display:inline-block;margin-left:6px;font-size:12px;font-weight:700;background:#E6EAF2;color:var(--ink);padding:1px 6px;border-radius:6px;vertical-align:middle}
+ 
+  /* queue */
+  h3{margin:14px 4px 6px;font-size:14px;font-weight:600;color:var(--mute)}
+  .list{display:flex;flex-direction:column;gap:6px}
+  .row{display:flex;align-items:stretch;background:var(--card);border-radius:14px;border:1.5px solid var(--line);overflow:hidden;min-height:56px;transition:transform .15s}
+  .chips,.list,.row,.handle,.body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  .row.drag{opacity:.25}
+  .ghost{position:fixed;left:0;top:0;z-index:50;pointer-events:none;box-shadow:0 10px 30px rgba(20,33,61,.28);transform-origin:center;transition:none;opacity:1;border-color:var(--ink)}
+  body.dragging{overflow:hidden;-webkit-user-select:none;user-select:none}
+  .row.over{border-color:var(--ink)}
+  .lane{width:6px;flex:none}
+  .lane.RD{background:var(--rd)}.lane.LL{background:var(--ll)}.lane.SP{background:var(--sp)}.lane.FX{background:var(--fx)}
+  .handle{flex:none;width:40px;display:flex;align-items:center;justify-content:center;color:#A7B0C2;font-size:22px;cursor:grab;touch-action:none;user-select:none}
+  .handle:active{cursor:grabbing}
+  .body{flex:1;padding:8px 6px 8px 0;display:flex;flex-direction:column;justify-content:center;min-width:0}
+  .name{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .meta{font-size:13px;color:var(--mute);display:flex;gap:8px;align-items:center}
+  .chip{font-size:11px;font-weight:700;padding:1px 6px;border-radius:6px;color:#fff}
+  .chip.RD{background:var(--rd)}.chip.LL{background:var(--ll)}.chip.SP{background:var(--sp)}.chip.FX{background:var(--fx)}
+  .act{flex:none;display:flex;align-items:center;padding-right:8px;gap:4px}
+  .did{border:0;border-radius:10px;background:var(--ink);color:#fff;font:inherit;font-weight:600;font-size:14px;padding:10px 12px;cursor:pointer}
+  .x{border:0;background:none;color:#A7B0C2;font-size:18px;padding:6px;cursor:pointer}
+ 
+  /* wait prompt */
+  .ask{display:flex;align-items:center;gap:6px;padding:0 8px 0 0}
+  .ask input{width:62px;font:inherit;font-size:17px;padding:8px 6px;border:1.5px solid var(--line);border-radius:10px;text-align:center}
+  .ask button{border:0;border-radius:10px;font:inherit;font-weight:600;font-size:14px;padding:10px 10px;cursor:pointer;background:var(--ink);color:#fff}
+  .ask button.q{background:#E6EAF2;color:var(--ink)}
+ 
+  /* log */
+  .log .row{min-height:48px}
+  .log .body{padding-left:12px}
+  .log .when{font-weight:600;font-size:15px}
+  .log .wait{font-size:14px;color:var(--mute)}
+  .log .wait.over{color:var(--bad);font-weight:600}
+  .undo{border:0;background:none;color:var(--mute);font:inherit;font-size:14px;padding:8px 12px;cursor:pointer}
+ 
+  /* add */
+  .add{display:flex;gap:6px;margin-top:8px}
+  .add input{flex:1;font:inherit;font-size:16px;padding:11px 12px;border:1.5px solid var(--line);border-radius:12px;min-width:0}
+  .add select{font:inherit;font-size:15px;padding:0 8px;border:1.5px solid var(--line);border-radius:12px;background:#fff}
+  .add button{border:0;border-radius:12px;background:var(--ink);color:#fff;font:inherit;font-weight:600;padding:0 14px;cursor:pointer}
+  .foot{display:flex;justify-content:space-between;margin-top:18px;font-size:13px;color:var(--mute)}
+  .foot button{border:0;background:none;color:var(--mute);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;padding:0}
+  .bar{transition:height .35s cubic-bezier(.2,.8,.2,1)}
+  .row.leaving{animation:leave .22s ease-in forwards}
+  .row.arriving{animation:arrive .28s cubic-bezier(.2,.8,.2,1)}
+  .did,.undo,.days button,.parks button{transition:transform .08s}
+  .did:active,.undo:active,.days button:active,.parks button:active{transform:scale(.93)}
+  @keyframes leave{to{opacity:0;transform:translateX(28px)}}
+  @keyframes arrive{from{opacity:0;transform:translateY(-8px)}}
+  .parks button,.days button{transition:background .15s,color .15s}
+  :focus-visible{outline:3px solid var(--ll);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){.row,.bar{transition:none;animation:none}.row.leaving,.row.arriving{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="banner"></div>
+  <div class="days" role="tablist" id="days"></div>
+ 
+  <section class="meter">
+    <h2>Waits today <span id="cap">ceiling 30 min</span></h2>
+    <div class="bars" id="bars"><div class="cap"></div></div>
+    <div class="meterfoot"><span>Rides <b id="n">0</b></span><span>Avg <b id="avg">–</b></span><span>Over 30 <b id="over">0</b></span></div>
+  </section>
+ 
+  <section class="ll" id="ll"></section>
+  <div class="parks" id="parks"></div>
+  <h3>Up next — drag ☰ to reorder</h3>
+  <div class="list" id="queue"></div>
+  <div class="add">
+    <input id="addName" placeholder="Add a ride" aria-label="Ride name">
+    <select id="addLane" aria-label="Lane"><option value="LL">LL</option><option value="RD">RD</option><option value="SP">SP</option><option value="FX">Flex</option></select>
+    <button id="addBtn">Add</button>
+  </div>
+ 
+  <h3>Done</h3>
+  <div class="list log" id="log"></div>
+ 
+  <div class="foot"><span id="saved">Saved on this device</span><span class="r"><button id="export">Copy backup</button><button id="import">Paste backup</button><button id="reset">Reset this day</button></span></div>
+</div>
+ 
+<script>
+const KEY='dl-2026-board-v6';
+// Order within a day = priority. SP/LL first (best standby-vs-LL value), then rope drop, then flex.
+// Every day seeds BOTH parks (it's a hopper). `top` is that day's priority order; everything else
+// in the catalog follows, grouped SP → LL → RD → Flex. Park toggle filters the view.
+const CATALOG=[
+ // Disneyland
+ ['Rise of the Resistance','DL','SP'],
+ ['Big Thunder Mountain','DL','LL'],['Space Mountain','DL','LL'],["Tiana's Bayou Adventure",'DL','LL'],
+ ['Runaway Railway','DL','LL'],['Haunted Mansion','DL','LL'],['Star Tours','DL','LL'],
+ ['Millennium Falcon: Smugglers Run','DL','LL'],["Roger Rabbit's Car Toon Spin",'DL','LL'],['Buzz Lightyear Astro Blasters','DL','LL'],
+ ['Autopia','DL','LL'],["it's a small world",'DL','LL'],
+ ["Peter Pan's Flight",'DL','RD'],["Snow White's Enchanted Wish",'DL','RD'],['Dumbo','DL','RD'],['Alice in Wonderland','DL','RD'],
+ ['Pirates of the Caribbean','DL','FX'],['Jungle Cruise','DL','FX'],['Winnie the Pooh','DL','FX'],["Mr. Toad's Wild Ride",'DL','FX'],
+ ["Pinocchio's Daring Journey",'DL','FX'],['Casey Jr. Circus Train','DL','FX'],['Storybook Land Canal Boats','DL','FX'],
+ ['King Arthur Carrousel','DL','FX'],['Mad Tea Party (Teacups)','DL','FX'],["Gadget's Go Coaster",'DL','FX'],
+ ['Finding Nemo Submarine Voyage','DL','FX'],['Astro Orbitor','DL','FX'],['Enchanted Tiki Room','DL','FX'],
+ ['Disneyland Railroad','DL','FX'],['Mark Twain Riverboat','DL','FX'],['Tom Sawyer Island rafts','DL','FX'],
+ ['Adventureland Treehouse','DL','FX'],['Sleeping Beauty Castle walkthrough','DL','FX'],['Main Street vehicles','DL','FX'],['Monorail','DL','FX'],
+ // California Adventure
+ ['Radiator Springs Racers','DCA','SP'],
+ ['Guardians: Mission Breakout','DCA','LL'],["Soarin'",'DCA','LL'],['Toy Story Midway Mania','DCA','LL'],['Web Slingers','DCA','LL'],
+ ['Monsters, Inc.','DCA','LL'],['The Little Mermaid','DCA','LL'],["Mater's Junkyard Jamboree",'DCA','LL'],["Luigi's Rollickin' Roadsters",'DCA','LL'],
+ ['Silly Symphony Swings (single)','DCA','FX'],["Jumpin' Jellyfish",'DCA','FX'],['Golden Zephyr','DCA','FX'],
+ ["Jessie's Critter Carousel",'DCA','FX'],['Pixar Pal-A-Round (non-swinging)','DCA','FX'],['Pixar Pal-A-Round (swinging)','DCA','FX'],
+ ['Inside Out Emotional Whirlwind','DCA','FX'],["Mickey's PhilharMagic",'DCA','FX'],['Turtle Talk with Crush','DCA','FX'],
+ ['Animation Academy','DCA','FX'],["Sorcerer's Workshop",'DCA','FX'],['Redwood Creek Challenge Trail','DCA','FX'],['Games of Pixar Pier','DCA','FX']
+];
+const DAYS=[
+ {id:'fri',label:'Fri',sub:'Disneyland',park:'DL',top:[
+  ['Rise of the Resistance','SP'],['Big Thunder Mountain','LL'],['Space Mountain','LL'],["Tiana's Bayou Adventure",'LL'],
+  ['Runaway Railway','LL'],['Haunted Mansion','LL'],['Star Tours','LL'],['Millennium Falcon: Smugglers Run','LL'],
+  ["Roger Rabbit's Car Toon Spin",'LL'],['Buzz Lightyear Astro Blasters','LL'],['Autopia','LL'],["it's a small world",'LL'],
+  ["Peter Pan's Flight",'RD'],["Snow White's Enchanted Wish",'RD'],['Dumbo','RD'],['Alice in Wonderland','RD']]},
+ {id:'sat',label:'Sat',sub:'DCA → hop',park:'DCA',top:[
+  ['Radiator Springs Racers','SP'],['Guardians: Mission Breakout','LL'],['Web Slingers','LL'],['Monsters, Inc.','LL'],
+  ['The Little Mermaid','LL'],["Mater's Junkyard Jamboree",'LL'],["Luigi's Rollickin' Roadsters",'LL'],
+  ["Soarin'",'RD'],['Toy Story Midway Mania','RD'],
+  ['Big Thunder Mountain','LL'],['Space Mountain','LL'],["Peter Pan's Flight",'FX']]},
+ {id:'sun',label:'Sun',sub:'Her picks',park:'DL',top:[
+  ['Rise of the Resistance','SP'],['Radiator Springs Racers','SP'],
+  ['Big Thunder Mountain','LL'],['Space Mountain','LL'],["Tiana's Bayou Adventure",'LL'],['Runaway Railway','LL'],
+  ['Guardians: Mission Breakout','LL'],["Soarin'",'LL'],['Haunted Mansion','LL'],['Star Tours','LL'],['Toy Story Midway Mania','LL'],
+  ["Peter Pan's Flight",'RD'],["Snow White's Enchanted Wish",'RD'],['Dumbo','RD'],
+  ['Pirates of the Caribbean','FX'],['King Arthur Carrousel','FX'],['Mad Tea Party (Teacups)','FX'],["Gadget's Go Coaster",'FX']]}
+];
+const LANE={RD:'Rope drop',LL:'Lightning Lane',SP:'Single Pass',FX:'Flex'};
+const PARKS=[['ALL','Both'],['DL','Disneyland'],['DCA','DCA']];
+let state=null, day='fri', asking=null, lastLogAt=0;
+const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Haptics: Android/Chrome via vibrate; iOS Safari via the switch-toggle trick (fires only inside a user gesture)
+function buzz(ms=12){ try{ if(navigator.vibrate)navigator.vibrate(ms); }catch(e){} }
+ 
+const uid=()=>Math.random().toString(36).slice(2,9);
+const LORDER={SP:0,LL:1,RD:2,FX:3};
+function seedDay(d){
+  const byName=Object.fromEntries(CATALOG.map(([n,p,l])=>[n,{park:p,lane:l}]));
+  const top=d.top.map(([name,lane])=>({id:uid(),name,lane,park:byName[name].park,rides:[]}));
+  const used=new Set(d.top.map(t=>t[0]));
+  const rest=CATALOG.filter(([n])=>!used.has(n)).map(([name,park,lane])=>({id:uid(),name,lane,park,rides:[]}))
+    .sort((a,b)=>(a.park===d.park?0:1)-(b.park===d.park?0:1)||LORDER[a.lane]-LORDER[b.lane]);
+  return [...top,...rest];
+}
+const fresh=()=>({days:Object.fromEntries(DAYS.map(d=>[d.id,seedDay(d)])),park:{},ll:{}});
+ 
+let loadFailed=false;
+async function load(){
+  loadFailed=false;
+  try{
+    if(window.storage){
+      let r=null;
+      try{ r=await window.storage.get(KEY,false); }
+      catch(e){ // missing key vs. no connectivity: a successful list() means storage is reachable and the key just doesn't exist yet
+        const l=await window.storage.list('dl-2026',false); if(l&&Array.isArray(l.keys)&&l.keys.includes(KEY)) throw e; }
+      if(r&&r.value) state=JSON.parse(r.value);
+    } else if(window.localStorage){const v=localStorage.getItem(KEY); if(v)state=JSON.parse(v);}
+  }catch(e){ loadFailed=true; }
+  if(loadFailed){ // never overwrite a save we couldn't read — offer retry, work in memory meanwhile
+    $('banner').innerHTML=`<div class="banner">Couldn't reach saved data (no signal?). Working in memory. <button id="retry">Retry</button></div>`;
+    $('retry').onclick=()=>{$('banner').innerHTML='';load();};
+    if(!state) state=fresh();
+  } else $('banner').innerHTML='';
+  if(!state) state=fresh();
+  if(!state.park) state.park={};
+  if(!state.ll) state.ll={};
+  if(state.day) day=state.day; else { const h=new Date().getDay(); day = h===6?'sat': h===0?'sun':'fri'; }
+  render();
+}
+let dirty=false;
+async function persist(){
+  const json=JSON.stringify(state);
+  if(window.storage){ await window.storage.set(KEY,json,false); $('saved').textContent='Saved on this device'; }
+  else if(window.localStorage){ localStorage.setItem(KEY,json); $('saved').textContent='Saved in this browser'; }
+  else throw new Error('no storage');
+}
+async function save(){
+  state.day=day; render();
+  try{ await persist(); dirty=false; }
+  catch(e){ dirty=true; $('saved').textContent='Not saved yet — retrying…';
+    setTimeout(async()=>{ try{ await persist(); dirty=false; }catch(e2){ $('saved').textContent='Save failed — copy a backup before closing'; } },4000); }
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ if(state)renderLL(); if(dirty)save(); } });
+const $=id=>document.getElementById(id);
+const items=()=>state.days[day];
+const parkFilter=()=>state.park[day]||'ALL';
+const visible=i=>parkFilter()==='ALL'||i.park===parkFilter();
+const fmt=t=>new Date(t).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+const last=i=>i.rides[i.rides.length-1];
+ 
+function render(){
+  // day tabs
+  $('days').innerHTML=DAYS.map(d=>`<button role="tab" aria-selected="${d.id===day}" data-day="${d.id}">${d.label}<small>${d.sub}</small></button>`).join('');
+  $('days').querySelectorAll('button').forEach(b=>b.onclick=()=>{buzz(8);day=b.dataset.day;asking=null;save();});
+ 
+  renderLL();
+ 
+  // park toggle
+  $('parks').innerHTML=PARKS.map(([k,l])=>`<button aria-pressed="${parkFilter()===k}" data-park="${k}">${l}</button>`).join('');
+  $('parks').querySelectorAll('button').forEach(b=>b.onclick=()=>{buzz(8);state.park[day]=b.dataset.park;asking=null;save();});
+ 
+  // meter — one bar per ride, repeats included
+  const entries=items().flatMap(i=>i.rides.map(r=>({...r,name:i.name}))).sort((a,b)=>a.at-b.at);
+  const bars=$('bars'); bars.innerHTML='<div class="cap"></div>'; bars.classList.toggle('empty',!entries.length);
+  const max=Math.max(30,...entries.map(r=>r.wait||0));
+  entries.forEach(r=>{const w=r.wait||0;const el=document.createElement('div');el.className='bar'+(w>30?' over':'');const h=Math.max(6,(w/max)*58)+'px';
+    if(!REDUCE&&r.at===lastLogAt){el.style.height='6px';requestAnimationFrame(()=>requestAnimationFrame(()=>el.style.height=h));}else el.style.height=h;
+    el.title=`${r.name}: ${w} min`;el.innerHTML=`<i>${w}</i>`;bars.appendChild(el);});
+  bars.querySelector('.cap').style.top=(6+58-(30/max)*58)+'px';
+  const waits=entries.map(r=>r.wait||0);
+  $('n').textContent=entries.length; $('avg').textContent=waits.length?Math.round(waits.reduce((a,b)=>a+b,0)/waits.length)+' min':'–';
+  $('over').textContent=waits.filter(w=>w>30).length;
+ 
+  const askBox=i=>`<div class="ask"><input type="number" inputmode="numeric" min="0" placeholder="min" id="w-${i.id}"><button data-log="${i.id}">Log</button><button class="q" data-cancel="1">✕</button></div>`;
+  const chips=i=>`<div class="chips" data-chips="${i.id}">${[0,5,10,15,20,30,45].map(m=>`<button data-min="${m}">${m}</button>`).join('')}</div>`;
+ 
+  // queue: not yet ridden, in this park
+  const q=items().filter(i=>!i.rides.length&&visible(i));
+  $('queue').innerHTML=q.length?q.map(i=>`
+    <div class="row" data-id="${i.id}">
+      <div class="lane ${i.lane}"></div>
+      <div class="handle" aria-label="Drag to reorder">☰</div>
+      <div class="body"><div class="name">${i.name}</div><div class="meta"><span class="chip ${i.lane}">${i.lane==='FX'?'Flex':i.lane}</span><span>${LANE[i.lane]} · ${i.park}</span></div></div>
+      ${asking===i.id?askBox(i):`<div class="act"><button class="did" data-did="${i.id}">Did it</button><button class="x" data-del="${i.id}" aria-label="Remove">✕</button></div>`}
+    </div>${asking===i.id?chips(i):''}`).join('')
+    :`<div class="row"><div class="body" style="padding:14px 12px;color:var(--mute)">Nothing queued${parkFilter()==='ALL'?'':' in '+parkFilter()}. Add a ride, switch parks, or tap Again on something below.</div></div>`;
+ 
+  // done: ridden at least once, in this park, latest first
+  const done=items().filter(i=>i.rides.length&&visible(i)).sort((a,b)=>last(b).at-last(a).at);
+  $('log').innerHTML=done.length?done.map(i=>{const r=last(i);return `
+    <div class="row${r.at===lastLogAt?' arriving':''}"><div class="lane ${i.lane}"></div>
+      <div class="body"><div class="name">${i.name}${i.rides.length>1?`<span class="count">×${i.rides.length}</span>`:''}</div>
+      <div class="meta"><span class="when">${fmt(r.at)}</span><span class="wait ${r.wait>30?'over':''}">${r.wait??0} min wait</span><span>${i.park}</span></div></div>
+      ${asking===i.id?askBox(i):`<div class="act"><button class="did" data-did="${i.id}">Again</button><button class="undo" data-undo="${i.id}">Undo</button></div>`}
+    </div>${asking===i.id?chips(i):''}`;}).join('')
+    :`<div class="row"><div class="body" style="padding:12px;color:var(--mute)">Rides you log show up here with the time and the wait. Tap Again to ride twice.</div></div>`;
+ 
+  // wire buttons (both lists)
+  document.querySelectorAll('[data-did]').forEach(b=>b.onclick=()=>{asking=b.dataset.did;render();const w=$('w-'+asking);if(w)w.focus();});
+  document.querySelectorAll('[data-cancel]').forEach(b=>b.onclick=()=>{asking=null;render();});
+  document.querySelectorAll('[data-log]').forEach(b=>b.onclick=()=>logIt(b.dataset.log));
+  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const i=items().find(x=>x.id===b.dataset.del);if(confirm(`Remove ${i.name} from today?`)){state.days[day]=items().filter(x=>x.id!==b.dataset.del);save();}});
+  document.querySelectorAll('input[type=number]').forEach(inp=>inp.onkeydown=e=>{if(e.key==='Enter')logIt(inp.id.slice(2));});
+  document.querySelectorAll('[data-chips] button').forEach(b=>b.onclick=()=>{const id=b.closest('[data-chips]').dataset.chips;const w=$('w-'+id);if(w)w.value=b.dataset.min;logIt(id);});
+  // tap a lane chip to change the lane (Disney reshuffles what's LL)
+  document.querySelectorAll('#queue .chip').forEach(c=>c.onclick=e=>{e.stopPropagation();const id=c.closest('.row').dataset.id;const i=items().find(x=>x.id===id);const order=['SP','LL','RD','FX'];i.lane=order[(order.indexOf(i.lane)+1)%4];buzz(6);save();});
+  document.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>{buzz(8);const i=items().find(x=>x.id===b.dataset.undo);i.rides.pop();save();});
+  wireDrag();
+}
+ 
+// Next Lightning Lane: bookable again at tap-in or 120 min after booking, whichever comes first.
+const WINDOW=120*60*1000;
+function renderLL(){
+  const el=$('ll'); const b=state.ll[day]; const now=Date.now();
+  if(!b){
+    const opts=items().filter(i=>i.lane==='LL'&&!i.rides.length&&visible(i));
+    el.className='ll open';
+    el.innerHTML=`<div class="t"><div class="big">Book a Lightning Lane</div><div class="sub">You're eligible now</div></div>
+      <select id="llPick" aria-label="Which ride">${opts.map(i=>`<option value="${i.id}">${i.name}</option>`).join('')}<option value="">Other</option></select>
+      <button id="llBooked">Booked</button>`;
+    $('llBooked').onclick=()=>{buzz(10);const id=$('llPick').value;const i=items().find(x=>x.id===id);state.ll[day]={at:Date.now(),id:id||null,name:i?i.name:'Lightning Lane'};save();};
+    return;
+  }
+  const opensAt=b.at+WINDOW, left=opensAt-now;
+  const hhmm=fmt(opensAt);
+  const mins=Math.max(0,Math.ceil(left/60000));
+  el.className='ll'+(left<=0?' open':'');
+  el.innerHTML=`<div class="t"><div class="big">${left<=0?'Book your next one':`Next LL at ${hhmm}`}</div>
+      <div class="sub">${left<=0?'2 hours passed since '+b.name:`in ${mins>=60?Math.floor(mins/60)+'h '+(mins%60)+'m':mins+' min'} · holding ${b.name}`}</div></div>
+      <button id="llTap">Tapped in</button><button class="ghostb" id="llCancel" aria-label="Clear">✕</button>`;
+  $('llTap').onclick=()=>{buzz(14);const id=b.id;delete state.ll[day];asking=id||null;save();if(id){const w=$('w-'+id);if(w)w.focus();}};
+  $('llCancel').onclick=()=>{buzz(8);delete state.ll[day];save();};
+}
+setInterval(()=>{ if(state&&!document.activeElement?.closest?.('.ll')) renderLL(); },30000);
+ 
+function logIt(id){
+  const i=items().find(x=>x.id===id); if(!i)return;
+  const v=parseInt(($('w-'+id)||{}).value,10);
+  buzz(18);
+  const commit=()=>{lastLogAt=Date.now(); i.rides.push({at:lastLogAt,wait:isNaN(v)?0:v}); asking=null; save();};
+  const row=document.querySelector(`#queue .row[data-id="${id}"]`);
+  if(row&&!REDUCE){row.classList.add('leaving');setTimeout(commit,200);} else commit();
+}
+ 
+$('addBtn').onclick=()=>{const n=$('addName').value.trim();if(!n)return;items().push({id:uid(),name:n,lane:$('addLane').value,park:parkFilter()==='ALL'?DAYS.find(d=>d.id===day).park:parkFilter(),rides:[]});$('addName').value='';save();};
+$('addName').onkeydown=e=>{if(e.key==='Enter')$('addBtn').click();};
+$('export').onclick=async()=>{const json=JSON.stringify(state);try{await navigator.clipboard.writeText(json);$('saved').textContent='Backup copied — paste it into Notes';}catch(e){prompt('Copy this backup:',json);}};
+$('import').onclick=()=>{const v=prompt('Paste a backup:');if(!v)return;try{const o=JSON.parse(v);if(!o.days)throw 0;state=o;if(!state.park)state.park={};if(!state.ll)state.ll={};asking=null;save();}catch(e){alert('That did not look like a board backup.');}};
+$('reset').onclick=()=>{if(confirm('Reset this day to the seeded plan? Your log for this day will be cleared.')){state.days[day]=seedDay(DAYS.find(d=>d.id===day));asking=null;save();}};
+ 
+// drag reorder — touch-safe. Handle starts instantly; anywhere else on a row starts after a short hold.
+let drag=null;
+document.addEventListener('touchmove',e=>{if(drag)e.preventDefault();},{passive:false});
+document.addEventListener('contextmenu',e=>{if(e.target.closest('#queue'))e.preventDefault();});
+document.addEventListener('selectstart',e=>{if(e.target.closest('#queue'))e.preventDefault();});
+ 
+function wireDrag(){
+  const list=$('queue');
+  list.querySelectorAll('.row[data-id]').forEach(row=>{
+    row.addEventListener('pointerdown',e=>{
+      if(e.target.closest('button,input,select'))return;
+      const onHandle=!!e.target.closest('.handle');
+      const sx=e.clientX, sy=e.clientY; let timer=null, armed=false;
+      const begin=()=>{ armed=true; startDrag(row,e.pointerId,sx,sy); };
+      if(onHandle){ e.preventDefault(); begin(); }
+      else timer=setTimeout(begin,220);
+      const move=ev=>{ if(!armed && Math.hypot(ev.clientX-sx,ev.clientY-sy)>8){clearTimeout(timer);cleanup();} };
+      const cleanup=()=>{row.removeEventListener('pointermove',move);row.removeEventListener('pointerup',cleanup);row.removeEventListener('pointercancel',cleanup);clearTimeout(timer);};
+      row.addEventListener('pointermove',move);
+      row.addEventListener('pointerup',cleanup);
+      row.addEventListener('pointercancel',cleanup);
+    });
+  });
+}
+ 
+function startDrag(row,pid,x,y){
+  const list=$('queue'); const r=row.getBoundingClientRect();
+  const ghost=row.cloneNode(true); ghost.classList.add('ghost'); ghost.style.width=r.width+'px'; ghost.style.left=r.left+'px'; ghost.style.top=r.top+'px';
+  document.body.appendChild(ghost); document.body.classList.add('dragging'); row.classList.add('drag');
+  drag={row,ghost,dx:x-r.left,dy:y-r.top,pid};
+  buzz(14);
+  let lastTarget=null;
+  const flip=fn=>{ if(REDUCE){fn();return;} const rows=[...list.querySelectorAll('.row[data-id]')].filter(el=>el!==row); const before=new Map(rows.map(el=>[el,el.getBoundingClientRect().top])); fn();
+    rows.forEach(el=>{const d=before.get(el)-el.getBoundingClientRect().top; if(d) el.animate([{transform:`translateY(${d}px)`},{transform:'translateY(0)'}],{duration:160,easing:'cubic-bezier(.2,.8,.2,1)'});}); };
+  const onMove=e=>{
+    if(!drag||e.pointerId!==pid)return; e.preventDefault();
+    ghost.style.left=(e.clientX-drag.dx)+'px'; ghost.style.top=(e.clientY-drag.dy)+'px';
+    // auto-scroll near edges
+    const vh=window.innerHeight; if(e.clientY<70)window.scrollBy(0,-8); else if(e.clientY>vh-70)window.scrollBy(0,8);
+    const rows=[...list.querySelectorAll('.row[data-id]')].filter(el=>el!==row);
+    for(const t of rows){const b=t.getBoundingClientRect(); if(e.clientY>b.top&&e.clientY<b.bottom){
+      const upper=e.clientY<b.top+b.height/2; const key=t.dataset.id+(upper?'a':'b');
+      if(key!==lastTarget){ lastTarget=key; flip(()=>upper?list.insertBefore(row,t):list.insertBefore(row,t.nextSibling)); buzz(6); }
+      break; }}
+  };
+  const onUp=e=>{
+    if(!drag||e.pointerId!==pid)return;
+    document.removeEventListener('pointermove',onMove); document.removeEventListener('pointerup',onUp); document.removeEventListener('pointercancel',onUp);
+    buzz(12); ghost.remove(); document.body.classList.remove('dragging'); row.classList.remove('drag'); drag=null;
+    const ids=[...list.querySelectorAll('.row[data-id]')].map(el=>el.dataset.id);
+    const map=Object.fromEntries(items().map(i=>[i.id,i])); const shown=new Set(ids); let k=0;
+    state.days[day]=items().map(i=>shown.has(i.id)?map[ids[k++]]:i); save();
+  };
+  document.addEventListener('pointermove',onMove,{passive:false});
+  document.addEventListener('pointerup',onUp); document.addEventListener('pointercancel',onUp);
+}
+load();
+</script>
+</body>
+</html>
